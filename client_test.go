@@ -17,9 +17,9 @@ func TestCatalogAndAuthorization(t *testing.T) {
 		if request.URL.Query().Get("wsid") != "ws_1" {
 			t.Fatal("missing workspace query")
 		}
-		_ = json.NewEncoder(writer).Encode([]ConnectorIntegration{{
+		_ = json.NewEncoder(writer).Encode(map[string]any{"integrations": []ConnectorIntegration{{
 			Provider: "hubspot", Descriptor: ConnectorDescriptor{ID: "hubspot", Name: "HubSpot"},
-		}})
+		}}})
 	}))
 	defer server.Close()
 	client, err := NewClient(Config{APIKey: "om_test_secret", BaseURL: server.URL})

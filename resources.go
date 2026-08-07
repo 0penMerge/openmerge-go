@@ -22,19 +22,23 @@ func (c *Client) CreateLinkToken(ctx context.Context, workspaceID, endUserOrigin
 }
 
 func (c *Client) ListIntegrations(ctx context.Context, workspaceID string) ([]ConnectorIntegration, error) {
-	var result []ConnectorIntegration
+	var result struct {
+		Integrations []ConnectorIntegration `json:"integrations"`
+	}
 	err := c.request(ctx, http.MethodGet, "/integrations", url.Values{"wsid": {workspaceID}}, nil, "", &result)
-	return result, err
+	return result.Integrations, err
 }
 
 func (c *Client) ListModels(ctx context.Context, workspaceID string) ([]UnifiedModelDefinition, error) {
-	var result []UnifiedModelDefinition
+	var result struct {
+		Models []UnifiedModelDefinition `json:"models"`
+	}
 	query := url.Values{}
 	if workspaceID != "" {
 		query.Set("wsid", workspaceID)
 	}
 	err := c.request(ctx, http.MethodGet, "/models", query, nil, "", &result)
-	return result, err
+	return result.Models, err
 }
 
 func (c *Client) ListLinkedAccounts(ctx context.Context, workspaceID string) ([]LinkedAccount, error) {
