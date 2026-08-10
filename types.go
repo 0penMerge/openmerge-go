@@ -18,6 +18,39 @@ type LinkedAccount struct {
 	SyncCount         int      `json:"sync_count,omitempty"`
 	SyncCadenceSecond int      `json:"sync_cadence_seconds,omitempty"`
 	CreatedAt         float64  `json:"created_at"`
+	MappingStatus     string   `json:"mapping_status,omitempty"`
+	MappingRequired   bool     `json:"mapping_required,omitempty"`
+}
+
+type DeveloperIR struct {
+	WorkspaceID   string                    `json:"wsid"`
+	OAuthAppID    string                    `json:"oauth_app_id"`
+	Provider      string                    `json:"provider,omitempty"`
+	ModelID       string                    `json:"model_id"`
+	Generation    int                       `json:"generation"`
+	DocumentHash  string                    `json:"document_hash"`
+	Inherited     bool                      `json:"inherited"`
+	Document      map[string]any            `json:"document"`
+	Requirements  map[string]map[string]any `json:"requirements"`
+	RemovedFields []string                  `json:"removed_fields"`
+}
+
+type ConnectionMappingSchema struct {
+	LinkedAccount map[string]any   `json:"linked_account"`
+	OAuthApp      map[string]any   `json:"oauth_app"`
+	Status        string           `json:"status"`
+	Required      bool             `json:"required"`
+	Models        []map[string]any `json:"models"`
+}
+
+type ConnectionMappingJob struct {
+	ID              string         `json:"id"`
+	Action          string         `json:"action"`
+	State           string         `json:"state"`
+	LinkedAccountID string         `json:"linked_account_id"`
+	Models          any            `json:"models,omitempty"`
+	Result          map[string]any `json:"result,omitempty"`
+	Error           string         `json:"error,omitempty"`
 }
 
 type ConnectorDescriptor struct {

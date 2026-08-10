@@ -53,3 +53,40 @@ func TestIdempotentWriteRetries(t *testing.T) {
 		t.Fatalf("unexpected write: %#v attempts=%d error=%v", write, attempts, err)
 	}
 }
+
+func TestDeveloperIRAndConnectionMappingContracts(t *testing.T) {
+	requests := make([]*http.Request, 0, 3)
+	server := httptest.NewServer(http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
+		requests = append(requests, request.Clone(request.Context()))
+		writer.Header().Set("Content-Type", "application/json")
+		switch {
+		case request.URL.Path == "/developer-ir/oa_1/Contact":
+			if request.URL.Query().Get("wsid") != "ws_1" {
+				t.Fatal("missing workspace query")
+			}
+			_, _ = writer.Write([]byte(`{"wsid":"ws_1","oauth_app_id":"oa_1","model_id":"Contact","generation":1,"document_hash":"sha256:test","document":{},"requirements":{},"removed_fields":[]}`))
+		case request.URL.Path == "/linked-accounts/la_1/field-mapping-token":
+			_, _ = writer.Write([]byte(`{"token":"tttttttttttttttttttttttttttttttt","expires_in":1800,"hosted_url":"https://connect.openmerge.dev/x"}`))
+		default:
+			_, _ = writer.Write([]byte(`{"id":"map_1","action":"activate","state":"queued"}`))
+		}
+	}))
+	defer server.Close()
+	client, _ := NewClient(Config{APIKey: "om_test_secret", BaseURL: server.URL})
+	developer, err := client.UpdateDeveloperIR(context.Background(), "ws_1", "oa_1", "Contact", 0, map[string]map[string]any{
+		"customer_tier": {"type": "string", "required": true},
+	}, nil)
+	if err != nil || developer.Generation != 1 {
+		t.Fatalf("unexpected developer IR: %#v error=%v", developer, err)
+	}
+	token, err := client.CreateConnectionMappingToken(context.Background(), "la_1", "https://customer.example")
+	if err != nil || token.ExpiresIn != 1800 {
+		t.Fatalf("unexpected mapping token: %#v error=%v", token, err)
+	}
+	job, err := client.ActivateConnectionMapping(context.Background(), "la_1", map[string]int{"Contact": 1}, map[string]map[string]string{
+		"Contact": {"customer_tier": "Customer_Tier__c"},
+	}, "mapping-1")
+	if err != nil || job.State != "queued" || len(requests) != 3 {
+		t.Fatalf("unexpected mapping job: %#v requests=%d error=%v", job, len(requests), err)
+	}
+}

@@ -57,6 +57,65 @@ func (c *Client) TriggerSync(ctx context.Context, linkedAccountID string, models
 	return result.Runs, err
 }
 
+func (c *Client) GetDeveloperIR(ctx context.Context, workspaceID, oauthAppID, modelID string) (DeveloperIR, error) {
+	var result DeveloperIR
+	err := c.request(ctx, http.MethodGet,
+		"/developer-ir/"+url.PathEscape(oauthAppID)+"/"+url.PathEscape(modelID),
+		url.Values{"wsid": {workspaceID}}, nil, "", &result)
+	return result, err
+}
+
+func (c *Client) UpdateDeveloperIR(ctx context.Context, workspaceID, oauthAppID, modelID string, expectedGeneration int, fields map[string]map[string]any, removedFields []string) (DeveloperIR, error) {
+	var result DeveloperIR
+	err := c.request(ctx, http.MethodPut,
+		"/developer-ir/"+url.PathEscape(oauthAppID)+"/"+url.PathEscape(modelID),
+		url.Values{"wsid": {workspaceID}}, map[string]any{
+			"expected_generation": expectedGeneration,
+			"fields":              fields,
+			"removed_fields":      removedFields,
+		}, "", &result)
+	return result, err
+}
+
+func (c *Client) GetConnectionMapping(ctx context.Context, linkedAccountID string) (ConnectionMappingSchema, error) {
+	var result ConnectionMappingSchema
+	err := c.request(ctx, http.MethodGet,
+		"/linked-accounts/"+url.PathEscape(linkedAccountID)+"/field-mapping",
+		nil, nil, "", &result)
+	return result, err
+}
+
+func (c *Client) CreateConnectionMappingToken(ctx context.Context, linkedAccountID, hostOrigin string) (LinkToken, error) {
+	var wire struct {
+		Token     string `json:"token"`
+		ExpiresIn int    `json:"expires_in"`
+		HostedURL string `json:"hosted_url"`
+	}
+	err := c.request(ctx, http.MethodPost,
+		"/linked-accounts/"+url.PathEscape(linkedAccountID)+"/field-mapping-token",
+		nil, map[string]any{"host_origin": hostOrigin}, "", &wire)
+	return LinkToken{Token: wire.Token, ExpiresIn: wire.ExpiresIn, HostedURL: wire.HostedURL}, err
+}
+
+func (c *Client) ActivateConnectionMapping(ctx context.Context, linkedAccountID string, expectedDeveloperGenerations map[string]int, mappings map[string]map[string]string, idempotencyKey string) (ConnectionMappingJob, error) {
+	var result ConnectionMappingJob
+	err := c.request(ctx, http.MethodPost,
+		"/linked-accounts/"+url.PathEscape(linkedAccountID)+"/field-mapping",
+		nil, map[string]any{
+			"expected_developer_generations": expectedDeveloperGenerations,
+			"mappings":                       mappings,
+			"idempotency_key":                idempotencyKey,
+		}, "", &result)
+	return result, err
+}
+
+func (c *Client) GetConnectionMappingJob(ctx context.Context, jobID string) (ConnectionMappingJob, error) {
+	var result ConnectionMappingJob
+	err := c.request(ctx, http.MethodGet,
+		"/connection-mapping-jobs/"+url.PathEscape(jobID), nil, nil, "", &result)
+	return result, err
+}
+
 func (c *Client) ListRecords(ctx context.Context, model, workspaceID, linkedAccountID, cursor string, pageSize int) (UnifiedRecordPage, error) {
 	if pageSize == 0 {
 		pageSize = 100
