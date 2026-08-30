@@ -17,6 +17,8 @@ import (
 
 var retryableStatuses = map[int]bool{408: true, 425: true, 429: true, 500: true, 502: true, 503: true, 504: true}
 
+const sdkVersion = "0.3.0"
+
 type Config struct {
 	APIKey            string
 	BaseURL           string
@@ -90,7 +92,7 @@ func (c *Client) request(ctx context.Context, method, path string, query url.Val
 		request.Header.Set("Accept", "application/json")
 		request.Header.Set("Authorization", "Bearer "+c.apiKey)
 		request.Header.Set("X-Request-ID", requestID)
-		request.Header.Set("X-OpenMerge-SDK", "go/0.1.0")
+		request.Header.Set("X-OpenMerge-SDK", "go/"+sdkVersion)
 		if body != nil {
 			request.Header.Set("Content-Type", "application/json")
 		}
