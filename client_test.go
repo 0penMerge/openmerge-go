@@ -54,6 +54,41 @@ func TestIdempotentWriteRetries(t *testing.T) {
 	}
 }
 
+func TestLinkTokenCarriesApplicationMappingOverrides(t *testing.T) {
+	var body map[string]any
+	server := httptest.NewServer(http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
+		if err := json.NewDecoder(request.Body).Decode(&body); err != nil {
+			t.Fatal(err)
+		}
+		_, _ = writer.Write([]byte(`{"token":"tttttttttttttttttttttttttttttttt","expires_in":1800,"hosted_url":"https://connect.openmerge.dev/x"}`))
+	}))
+	defer server.Close()
+	client, _ := NewClient(Config{APIKey: "om_test_secret", BaseURL: server.URL})
+	_, err := client.CreateLinkTokenWithOptions(
+		context.Background(),
+		"ws_1",
+		"customer_1",
+		LinkTokenOptions{MappingOverrides: map[string]map[string]map[string]string{
+			"salesforce": {"Contact": {"research_bio": "Research_Bio__c"}},
+		}},
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+	models, ok := body["mapping_overrides"].(map[string]any)
+	if !ok {
+		t.Fatalf("mapping_overrides missing from request: %#v", body)
+	}
+	salesforce, ok := models["salesforce"].(map[string]any)
+	if !ok {
+		t.Fatalf("salesforce mapping overrides missing: %#v", models)
+	}
+	contact, ok := salesforce["Contact"].(map[string]any)
+	if !ok || contact["research_bio"] != "Research_Bio__c" {
+		t.Fatalf("unexpected mapping override: %#v", models)
+	}
+}
+
 func TestDeveloperIRAndConnectionMappingContracts(t *testing.T) {
 	requests := make([]*http.Request, 0, 3)
 	server := httptest.NewServer(http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {

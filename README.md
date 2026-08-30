@@ -17,6 +17,18 @@ models, err := client.ListModels(ctx, "ws_123")
 accounts, err := client.ListLinkedAccounts(ctx, "ws_123")
 ```
 
+Per-connection application-to-CRM defaults are passed server-side when the link
+token is minted. Developer IR policy determines whether the customer can change
+the selection in the widget:
+
+```go
+link, err := client.CreateLinkTokenWithOptions(ctx, "ws_123", "customer_456", openmerge.LinkTokenOptions{
+    MappingOverrides: map[string]map[string]map[string]string{
+        "salesforce": {"Contact": {"research_bio": "Research_Bio__c"}},
+    },
+})
+```
+
 The SDK keeps workspace keys server-side, retries only safe or idempotency-keyed requests, exposes structured API errors, and verifies raw webhook bodies:
 
 ```go

@@ -6,6 +6,12 @@ type LinkToken struct {
 	HostedURL string `json:"hostedUrl"`
 }
 
+type LinkTokenOptions struct {
+	AllowedCategories []string                                `json:"allowed_categories,omitempty"`
+	HostOrigin        string                                  `json:"host_origin,omitempty"`
+	MappingOverrides  map[string]map[string]map[string]string `json:"mapping_overrides,omitempty"`
+}
+
 type LinkedAccount struct {
 	ID                string   `json:"id"`
 	WorkspaceID       string   `json:"wsid"`
@@ -29,6 +35,7 @@ type DeveloperIR struct {
 	ModelID       string                    `json:"model_id"`
 	Generation    int                       `json:"generation"`
 	DocumentHash  string                    `json:"document_hash"`
+	ContractHash  string                    `json:"contract_hash,omitempty"`
 	Inherited     bool                      `json:"inherited"`
 	Document      map[string]any            `json:"document"`
 	Requirements  map[string]map[string]any `json:"requirements"`

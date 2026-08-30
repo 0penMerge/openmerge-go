@@ -9,6 +9,13 @@ import (
 )
 
 func (c *Client) CreateLinkToken(ctx context.Context, workspaceID, endUserOriginID string, allowedCategories []string, hostOrigin string) (LinkToken, error) {
+	return c.CreateLinkTokenWithOptions(ctx, workspaceID, endUserOriginID, LinkTokenOptions{
+		AllowedCategories: allowedCategories,
+		HostOrigin:        hostOrigin,
+	})
+}
+
+func (c *Client) CreateLinkTokenWithOptions(ctx context.Context, workspaceID, endUserOriginID string, options LinkTokenOptions) (LinkToken, error) {
 	var wire struct {
 		Token     string `json:"token"`
 		ExpiresIn int    `json:"expires_in"`
@@ -16,7 +23,8 @@ func (c *Client) CreateLinkToken(ctx context.Context, workspaceID, endUserOrigin
 	}
 	err := c.request(ctx, http.MethodPost, "/link-tokens", nil, map[string]any{
 		"wsid": workspaceID, "end_user_origin_id": endUserOriginID,
-		"allowed_categories": allowedCategories, "host_origin": hostOrigin,
+		"allowed_categories": options.AllowedCategories, "host_origin": options.HostOrigin,
+		"mapping_overrides": options.MappingOverrides,
 	}, "", &wire)
 	return LinkToken{Token: wire.Token, ExpiresIn: wire.ExpiresIn, HostedURL: wire.HostedURL}, err
 }
