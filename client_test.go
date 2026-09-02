@@ -368,7 +368,7 @@ func TestDeveloperIRRevisionAndMappingMetadata(t *testing.T) {
 			}
 			_, _ = writer.Write([]byte(`{"revisions":[{"head_id":"ws_1:oa_1:Contact","wsid":"ws_1","provider":"salesforce","oauth_app_id":"oa_1","model_id":"Contact","generation":2,"base_hash":"base","document_hash":"current","contract_hash":"contract","document":{"fields":{}},"requirements":{},"removed_fields":[],"actor_id":"user_1","created_at":100.25}]}`))
 		case "/linked-accounts/la_1/field-mapping":
-			_, _ = writer.Write([]byte(`{"linked_account":{"id":"la_1"},"oauth_app":{"id":"oa_1"},"status":"active","required":true,"models":[{"id":"Contact","schema_ready":true,"provider_fields":[{"path":"Research_Bio__c","type":"string","vendor_extension":{"precision":100}}]}],"generated_at":"2026-08-31T00:00:00Z"}`))
+			_, _ = writer.Write([]byte(`{"linked_account":{"id":"la_1"},"oauth_app":{"id":"oa_1"},"status":"active","required":true,"models":[{"id":"Contact","schema_ready":true,"fields":[{"id":"research_bio","label":"Research bio","type":"string","required":false,"requirement_source":"developer_ir","provider_create_required":true,"direction":"two_way"}],"provider_fields":[{"path":"Research_Bio__c","type":"string","vendor_extension":{"precision":100}}],"provider_create_requirements":[{"path":"Research_Bio__c","label":"Research bio","type":"string","mapped_by":["research_bio"],"satisfied":true}],"write_readiness":{"create":true,"upsert":true,"missing_create_fields":[]}}],"generated_at":"2026-08-31T00:00:00Z"}`))
 		case "/connection-mapping-jobs/map_1":
 			_, _ = writer.Write([]byte(`{"id":"map_1","action":"discover","state":"failed","linked_account_id":"la_1","models":{"Contact":{"cursor":"page_2"}},"result":{"partial":true},"error_type":"ProviderRateLimit","error":"retry later","created_at":10,"updated_at":20,"finished_at":21}`))
 		default:
@@ -390,7 +390,7 @@ func TestDeveloperIRRevisionAndMappingMetadata(t *testing.T) {
 		t.Fatal("accepted out-of-range revision limit")
 	}
 	mapping, err := client.GetConnectionMapping(context.Background(), "la_1")
-	if err != nil || mapping.GeneratedAt == "" || mapping.Models[0]["provider_fields"].([]any)[0].(map[string]any)["vendor_extension"] == nil {
+	if err != nil || mapping.GeneratedAt == "" || mapping.Models[0].ProviderFields[0]["vendor_extension"] == nil || !mapping.Models[0].WriteReadiness.Create || !mapping.Models[0].Fields[0].ProviderCreateRequired {
 		t.Fatalf("mapping schema metadata was lost: %#v error=%v", mapping, err)
 	}
 	job, err := client.GetConnectionMappingJob(context.Background(), "map_1")

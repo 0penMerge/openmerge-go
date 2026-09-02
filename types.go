@@ -241,13 +241,63 @@ type DeveloperIRField struct {
 	Sensitivity          DeveloperFieldSensitivity `json:"sensitivity,omitempty"`
 }
 
+type ConnectionMappingField struct {
+	ID                     string                    `json:"id"`
+	Label                  string                    `json:"label"`
+	Type                   DeveloperFieldType        `json:"type,omitempty"`
+	Required               bool                      `json:"required"`
+	RequirementSource      string                    `json:"requirement_source"`
+	ProviderCreateRequired bool                      `json:"provider_create_required"`
+	Direction              DeveloperFieldDirection   `json:"direction"`
+	DefaultProviderField   string                    `json:"default_provider_field,omitempty"`
+	OverrideBy             []DeveloperFieldOverride  `json:"override_by"`
+	ApplicationOverridable bool                      `json:"application_overridable"`
+	CustomerEditable       bool                      `json:"customer_editable"`
+	MappedTo               string                    `json:"mapped_to,omitempty"`
+	BindingSource          string                    `json:"binding_source"`
+	BindingError           string                    `json:"binding_error,omitempty"`
+	Format                 string                    `json:"format,omitempty"`
+	Nullable               *bool                     `json:"nullable,omitempty"`
+	Items                  map[string]any            `json:"items,omitempty"`
+	Values                 []string                  `json:"values,omitempty"`
+	Ref                    string                    `json:"ref,omitempty"`
+	Sensitivity            DeveloperFieldSensitivity `json:"sensitivity,omitempty"`
+	Description            string                    `json:"description,omitempty"`
+}
+
+type ConnectionMappingProviderCreateRequirement struct {
+	Path      string   `json:"path"`
+	Label     string   `json:"label"`
+	Type      string   `json:"type,omitempty"`
+	MappedBy  []string `json:"mapped_by"`
+	Satisfied bool     `json:"satisfied"`
+}
+
+type ConnectionMappingWriteReadiness struct {
+	Create              bool     `json:"create"`
+	Upsert              bool     `json:"upsert"`
+	MissingCreateFields []string `json:"missing_create_fields"`
+}
+
+type ConnectionMappingModel struct {
+	ID                         string                                       `json:"id"`
+	DeveloperIRGeneration      int                                          `json:"developer_ir_generation"`
+	DeveloperIRHash            string                                       `json:"developer_ir_hash"`
+	Fields                     []ConnectionMappingField                     `json:"fields"`
+	ProviderFields             []map[string]any                             `json:"provider_fields"`
+	ProviderCreateRequirements []ConnectionMappingProviderCreateRequirement `json:"provider_create_requirements"`
+	WriteReadiness             ConnectionMappingWriteReadiness              `json:"write_readiness"`
+	SchemaObservedAt           string                                       `json:"schema_observed_at,omitempty"`
+	SchemaReady                bool                                         `json:"schema_ready"`
+}
+
 type ConnectionMappingSchema struct {
-	LinkedAccount map[string]any   `json:"linked_account"`
-	OAuthApp      map[string]any   `json:"oauth_app"`
-	Status        string           `json:"status"`
-	Required      bool             `json:"required"`
-	Models        []map[string]any `json:"models"`
-	GeneratedAt   string           `json:"generated_at"`
+	LinkedAccount map[string]any           `json:"linked_account"`
+	OAuthApp      map[string]any           `json:"oauth_app"`
+	Status        string                   `json:"status"`
+	Required      bool                     `json:"required"`
+	Models        []ConnectionMappingModel `json:"models"`
+	GeneratedAt   string                   `json:"generated_at"`
 }
 
 type ConnectionMappingJob struct {
