@@ -80,6 +80,17 @@ func TestDomainWebhookEnvelopeContract(t *testing.T) {
 	}
 }
 
+func TestLinkedAccountReauthRequiredEnvelopeContract(t *testing.T) {
+	payload := []byte(`{"event":"linked_account.reauth_required","ctx":{"workspace":{"id":"ws_1"},"user":{"origin_id":"customer_42","actor_id":null},"integration":{"provider":"hubspot","name":"HubSpot","categories":["crm"]},"oauth_app":{"id":"oa_1"},"connection":{"id":"la_1","status":"needs_reauth"}},"data":{"linked_account_id":"la_1","provider":"hubspot","end_user_origin_id":"customer_42","status":"needs_reauth","reason":"invalid_grant","recoverable":true,"action":"reconnect"},"breadcrumbs":{"event_id":"evt_1","occurred_at":"2026-09-04T00:00:00Z","entity":{"type":"linked_account","id":"la_1"},"request_id":null,"transition_id":"reauth:la_1:4","previous_status":"healthy","credential_version":4}}`)
+	var envelope LinkedAccountReauthRequiredWebhookEnvelope
+	if err := json.Unmarshal(payload, &envelope); err != nil {
+		t.Fatal(err)
+	}
+	if envelope.Event != DomainWebhookEventLinkedAccountReauthRequired || envelope.Data.EndUserOriginID != "customer_42" || envelope.Breadcrumbs.CredentialVersion != 4 {
+		t.Fatalf("unexpected reauth envelope: %#v", envelope)
+	}
+}
+
 func TestTypedWebhookEnvelopesRetainRequiredNullableKeys(t *testing.T) {
 	recordRaw, err := json.Marshal(RecordWebhookEnvelope{
 		Data: RecordWebhookData{Record: map[string]any{}},

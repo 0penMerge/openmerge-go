@@ -107,6 +107,8 @@ type LinkedAccount struct {
 	EndUserOriginID   string   `json:"end_user_origin_id"`
 	EndUserLabel      string   `json:"end_user_label,omitempty"`
 	Status            string   `json:"status"`
+	ReauthReason      string   `json:"reauth_reason,omitempty"`
+	NeedsReauthAt     *float64 `json:"needs_reauth_at,omitempty"`
 	LastSyncAt        *float64 `json:"last_sync_at,omitempty"`
 	SyncCount         int      `json:"sync_count,omitempty"`
 	SyncCadenceSecond int      `json:"sync_cadence_seconds,omitempty"`
@@ -461,6 +463,7 @@ type DomainWebhookEvent string
 const (
 	DomainWebhookEventLinkedAccountCreated        DomainWebhookEvent = "linked_account.created"
 	DomainWebhookEventLinkedAccountReconnected    DomainWebhookEvent = "linked_account.reconnected"
+	DomainWebhookEventLinkedAccountReauthRequired DomainWebhookEvent = "linked_account.reauth_required"
 	DomainWebhookEventSyncRunning                 DomainWebhookEvent = "sync.running"
 	DomainWebhookEventSyncCompleted               DomainWebhookEvent = "sync.completed"
 	DomainWebhookEventSyncFailed                  DomainWebhookEvent = "sync.failed"
@@ -506,6 +509,30 @@ type DomainWebhookEnvelope struct {
 	Ctx         DomainWebhookContext     `json:"ctx"`
 	Data        map[string]any           `json:"data"`
 	Breadcrumbs DomainWebhookBreadcrumbs `json:"breadcrumbs"`
+}
+
+type LinkedAccountReauthRequiredData struct {
+	LinkedAccountID string `json:"linked_account_id"`
+	Provider        string `json:"provider"`
+	EndUserOriginID string `json:"end_user_origin_id"`
+	Status          string `json:"status"`
+	Reason          string `json:"reason"`
+	Recoverable     bool   `json:"recoverable"`
+	Action          string `json:"action"`
+}
+
+type LinkedAccountReauthRequiredBreadcrumbs struct {
+	DomainWebhookBreadcrumbs
+	TransitionID      string `json:"transition_id"`
+	PreviousStatus    string `json:"previous_status"`
+	CredentialVersion int    `json:"credential_version"`
+}
+
+type LinkedAccountReauthRequiredWebhookEnvelope struct {
+	Event       DomainWebhookEvent                     `json:"event"`
+	Ctx         DomainWebhookContext                   `json:"ctx"`
+	Data        LinkedAccountReauthRequiredData        `json:"data"`
+	Breadcrumbs LinkedAccountReauthRequiredBreadcrumbs `json:"breadcrumbs"`
 }
 
 type WebhookDeliveryUser struct {
@@ -558,7 +585,8 @@ type DomainWebhookOAuthApp struct {
 }
 
 type DomainWebhookConnection struct {
-	ID *string `json:"id"`
+	ID     *string `json:"id"`
+	Status *string `json:"status,omitempty"`
 }
 
 type WebhookContext struct {
