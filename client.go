@@ -19,6 +19,11 @@ var retryableStatuses = map[int]bool{408: true, 425: true, 429: true, 500: true,
 
 const sdkVersion = "0.3.0"
 
+type mailUpload struct {
+	Reader      io.Reader
+	ContentType string
+}
+
 type Config struct {
 	APIKey            string
 	BaseURL           string
@@ -73,7 +78,7 @@ func NewClient(config Config) (*Client, error) {
 func (c *Client) request(ctx context.Context, method, path string, query url.Values, body any, idempotencyKey string, out any) error {
 	var encoded []byte
 	var err error
-	if body != nil {
+	if _, streamed := body.(mailUpload); body != nil && !streamed {
 		encoded, err = json.Marshal(body)
 		if err != nil {
 			return fmt.Errorf("openmerge: encode request: %w", err)
@@ -85,7 +90,11 @@ func (c *Client) request(ctx context.Context, method, path string, query url.Val
 		target := *c.baseURL
 		target.Path += path
 		target.RawQuery = query.Encode()
-		request, err := http.NewRequestWithContext(ctx, method, target.String(), bytes.NewReader(encoded))
+		var input io.Reader = bytes.NewReader(encoded)
+		if upload, ok := body.(mailUpload); ok {
+			input = upload.Reader
+		}
+		request, err := http.NewRequestWithContext(ctx, method, target.String(), input)
 		if err != nil {
 			return err
 		}
@@ -95,6 +104,9 @@ func (c *Client) request(ctx context.Context, method, path string, query url.Val
 		request.Header.Set("X-OpenMerge-SDK", "go/"+sdkVersion)
 		if body != nil {
 			request.Header.Set("Content-Type", "application/json")
+		}
+		if upload, ok := body.(mailUpload); ok {
+			request.Header.Set("Content-Type", upload.ContentType)
 		}
 		if idempotencyKey != "" {
 			request.Header.Set("Idempotency-Key", idempotencyKey)
@@ -124,6 +136,14 @@ func (c *Client) request(ctx context.Context, method, path string, query url.Val
 		if out == nil || response.StatusCode == http.StatusNoContent {
 			_, _ = io.Copy(io.Discard, response.Body)
 			return nil
+		}
+		if destination, ok := out.(io.Writer); ok {
+			_, err = io.Copy(destination, response.Body)
+			return err
+		}
+		if target, ok := out.(*[]byte); ok {
+			*target, err = io.ReadAll(response.Body)
+			return err
 		}
 		if err := json.NewDecoder(response.Body).Decode(out); err != nil {
 			return fmt.Errorf("openmerge: decode response: %w", err)

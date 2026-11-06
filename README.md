@@ -236,3 +236,28 @@ go test -race ./...
 Codex and GPT-5.6 were used to audit the API contract, design retry/idempotency and webhook boundaries, generate the initial implementation, and build the test matrix. Maintainers remain responsible for review, release approval, and compatibility decisions.
 
 Licensed under AGPL-3.0-only.
+
+
+### Mail connectors
+
+Mail methods require the workspace, customer ownership (`end_user_origin_id`),
+and linked account. Message IDs are the returned OpenMerge unified IDs. Folder
+and thread views use provider IDs. Gmail, Microsoft mail, and SMTP/IMAP share
+these contracts; connection link tokens cannot read or send mail.
+
+Uploads return immutable content references for send attachments. Sending takes
+an idempotency key and returns an operation to poll. Accepted means the provider
+accepted submission. An indeterminate result must be reconciled before creating
+another send intent; automatically resending can duplicate mail. SMTP Sent-copy
+recovery is separate from message submission.
+
+```go
+scope := openmerge.MailScope{WorkspaceID: workspaceID, OwnerID: customerID, AccountID: accountID}
+page, err := client.ListMailMessages(ctx, scope, "mailbox", "", 100)
+err = client.DownloadMailContent(ctx, scope, messageID, "raw", destination)
+operation, err := client.SendMail(ctx, scope, openmerge.MailSendRequest{
+    Sender: "sender@example.com", To: []string{"recipient@example.com"},
+    Subject: "Hello", Text: "Message body", ReplyToMessageID: parentMessageID,
+}, idempotencyKey)
+status, err := client.GetMailOperation(ctx, scope, operation.ID)
+```

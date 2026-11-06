@@ -661,3 +661,38 @@ type WebhookPlan struct {
 	Generation *int    `json:"generation"`
 	Hash       *string `json:"hash"`
 }
+
+type MailScope struct {
+	WorkspaceID string
+	OwnerID     string
+	AccountID   string
+}
+type MailBlob struct {
+	Key         string `json:"key"`
+	SHA256      string `json:"sha256"`
+	Size        int64  `json:"size"`
+	ContentType string `json:"content_type"`
+}
+type MailAttachmentInput struct {
+	Filename string   `json:"filename"`
+	Content  MailBlob `json:"content"`
+}
+type MailSendRequest struct {
+	Attachments      []MailAttachmentInput `json:"attachments,omitempty"`
+	Sender           string                `json:"sender"`
+	To               []string              `json:"to"`
+	CC               []string              `json:"cc,omitempty"`
+	BCC              []string              `json:"bcc,omitempty"`
+	Subject          string                `json:"subject,omitempty"`
+	Text             string                `json:"text,omitempty"`
+	ReplyToMessageID string                `json:"reply_to_message_id,omitempty"`
+}
+type MailOperation struct {
+	ID     string         `json:"id"`
+	State  string         `json:"state"`
+	Result map[string]any `json:"result,omitempty"`
+}
+type MailRecordPage struct {
+	Records    []UnifiedRecord `json:"records"`
+	NextCursor *string         `json:"next_cursor"`
+}

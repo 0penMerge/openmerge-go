@@ -708,3 +708,21 @@ func TestMappingTokenRequiresDiscoveryJob(t *testing.T) {
 		t.Fatalf("unexpected request count: %d", requests)
 	}
 }
+
+func TestMailContentIsBinaryAndOwnerScoped(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Query().Get("end_user_origin_id") != "customer" {
+			t.Error("missing customer scope")
+		}
+		_, _ = w.Write([]byte{0, 255})
+	}))
+	defer server.Close()
+	client, err := NewClient(Config{APIKey: "om_test", BaseURL: server.URL})
+	if err != nil {
+		t.Fatal(err)
+	}
+	data, err := client.GetMailContent(context.Background(), MailScope{WorkspaceID: "ws", OwnerID: "customer", AccountID: "account"}, "message", "raw")
+	if err != nil || len(data) != 2 || data[1] != 255 {
+		t.Fatalf("binary content: %v %v", data, err)
+	}
+}

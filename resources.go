@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io"
 	"net/http"
 	"net/url"
 	"regexp"
@@ -704,4 +705,75 @@ func (c *Client) WaitForWriteback(ctx context.Context, writeID, workspaceID stri
 			return Writeback{}, err
 		}
 	}
+}
+
+func mailQuery(scope MailScope) url.Values {
+	return url.Values{"wsid": {scope.WorkspaceID}, "end_user_origin_id": {scope.OwnerID}}
+}
+func (c *Client) ListMailMessages(ctx context.Context, scope MailScope, view, cursor string, limit int) (MailRecordPage, error) {
+	query := mailQuery(scope)
+	if view != "" {
+		query.Set("view", view)
+	}
+	query.Set("cursor", cursor)
+	if limit > 0 {
+		query.Set("limit", strconv.Itoa(limit))
+	}
+	var result MailRecordPage
+	err := c.request(ctx, http.MethodGet, "/mail/accounts/"+url.PathEscape(scope.AccountID)+"/messages", query, nil, "", &result)
+	return result, err
+}
+func (c *Client) SendMail(ctx context.Context, scope MailScope, message MailSendRequest, idempotencyKey string) (MailOperation, error) {
+	var result MailOperation
+	err := c.request(ctx, http.MethodPost, "/mail/accounts/"+url.PathEscape(scope.AccountID)+"/send", mailQuery(scope), message, idempotencyKey, &result)
+	return result, err
+}
+func (c *Client) GetMailOperation(ctx context.Context, scope MailScope, operationID string) (MailOperation, error) {
+	var result MailOperation
+	err := c.request(ctx, http.MethodGet, "/mail/accounts/"+url.PathEscape(scope.AccountID)+"/operations/"+url.PathEscape(operationID), mailQuery(scope), nil, "", &result)
+	return result, err
+}
+func (c *Client) GetMailContent(ctx context.Context, scope MailScope, messageID, kind string) ([]byte, error) {
+	query := mailQuery(scope)
+	if kind != "" {
+		query.Set("kind", kind)
+	}
+	var result []byte
+	err := c.request(ctx, http.MethodGet, "/mail/accounts/"+url.PathEscape(scope.AccountID)+"/messages/"+url.PathEscape(messageID)+"/content", query, nil, "", &result)
+	return result, err
+}
+
+func (c *Client) ListMailContainers(ctx context.Context, scope MailScope, cursor string) (MailRecordPage, error) {
+	query := mailQuery(scope)
+	if cursor != "" {
+		query.Set("cursor", cursor)
+	}
+	var result MailRecordPage
+	err := c.request(ctx, http.MethodGet, "/mail/accounts/"+url.PathEscape(scope.AccountID)+"/containers", query, nil, "", &result)
+	return result, err
+}
+func (c *Client) GetMailMessage(ctx context.Context, scope MailScope, messageID string) (UnifiedRecord, error) {
+	var result UnifiedRecord
+	err := c.request(ctx, http.MethodGet, "/mail/accounts/"+url.PathEscape(scope.AccountID)+"/messages/"+url.PathEscape(messageID), mailQuery(scope), nil, "", &result)
+	return result, err
+}
+func (c *Client) GetMailAttachment(ctx context.Context, scope MailScope, messageID, part string) ([]byte, error) {
+	var result []byte
+	err := c.request(ctx, http.MethodGet, "/mail/accounts/"+url.PathEscape(scope.AccountID)+"/messages/"+url.PathEscape(messageID)+"/attachments/"+url.PathEscape(part), mailQuery(scope), nil, "", &result)
+	return result, err
+}
+func (c *Client) UploadMailContent(ctx context.Context, scope MailScope, content io.Reader, contentType string) (MailBlob, error) {
+	if contentType == "" {
+		contentType = "application/octet-stream"
+	}
+	var result MailBlob
+	err := c.request(ctx, http.MethodPost, "/mail/accounts/"+url.PathEscape(scope.AccountID)+"/content", mailQuery(scope), mailUpload{content, contentType}, "", &result)
+	return result, err
+}
+func (c *Client) DownloadMailContent(ctx context.Context, scope MailScope, messageID, kind string, destination io.Writer) error {
+	query := mailQuery(scope)
+	if kind != "" {
+		query.Set("kind", kind)
+	}
+	return c.request(ctx, http.MethodGet, "/mail/accounts/"+url.PathEscape(scope.AccountID)+"/messages/"+url.PathEscape(messageID)+"/content", query, nil, "", destination)
 }
